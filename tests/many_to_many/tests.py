@@ -612,6 +612,20 @@ class ManyToManyTests(TestCase):
         a4.publications.remove(self.p1)
         self.assertQuerysetEqual(a4.publications.all(), ['<Publication: Science News>'])
 
+    def test_prefetch_related_used_in_values_list(self):
+        from django.db import connection
+
+        cnt = len(connection.queries)
+        for pub in Publication.objects.prefetch_related('articles'):
+            res1 = [art.id for art in pub.articles]
+        self.assertEqual(connection.count, cnt + 1)
+
+        for pub in Publication.objects.prefetch_related('articles'):
+            res2 = pub.articles.values_list('id', flat=True)
+        self.assertEqual(connection.count, cnt + 2)
+
+        self.assertEqual(res1, res2)
+
     def test_inherited_models_selects(self):
         """
         #24156 - Objects from child models where the parent's m2m field uses
